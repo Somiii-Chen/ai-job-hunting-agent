@@ -1,0 +1,11 @@
+# 个人信息，永远不要上传
+profile/*
+!profile/profile.template.md
+resumes/*
+!resumes/README.md
+applications/
+drafts/
+jobs/
+
+# 系统文件
+.DS_Store
