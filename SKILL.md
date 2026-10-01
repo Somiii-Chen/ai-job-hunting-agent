@@ -1,6 +1,6 @@
 ---
 name: ai-job-hunting-agent
-description: 求职助手：找真实在招的岗位、核实还在招、对照用户真实经历做匹配分析、为有公开招聘邮箱的岗位写定制求职邮件并存进 macOS Mail.app 草稿（不自动发送）、把只能官网投递的岗位整理成投递清单、记录投递历史、准备面试。只要用户提到找工作、求职、投简历、找岗位、写求职信或求职邮件、给 HR 发邮件、整理投递记录、准备面试，或者说"开始今天的求职任务"、"帮我配置求职助手"，都应使用这个 skill，即使用户没有说出 skill 的名字。Job search assistant for finding verified openings, drafting tailored application emails as Mail.app drafts with human review before sending, tracking applications, and interview prep.
+description: 求职助手：找真实在招的岗位、核实还在招、对照用户真实经历做匹配分析、为有公开招聘邮箱的岗位写定制求职邮件并存进 macOS Mail.app 草稿（不自动发送）、把所有岗位整理进 Excel 求职投递工作台（公司、城市、招聘类型、用哪份简历、投递状态、匹配亮点和差距）、准备面试。只要用户提到找工作、求职、投简历、找岗位、写求职信或求职邮件、给 HR 发邮件、整理投递记录、准备面试，或者说"开始今天的求职任务"、"帮我配置求职助手"，都应使用这个 skill，即使用户没有说出 skill 的名字。Job search assistant for finding verified openings, drafting tailored application emails as Mail.app drafts with human review before sending, tracking applications, and interview prep.
 ---
 
 # AI 求职助手
@@ -37,11 +37,11 @@ description: 求职助手：找真实在招的岗位、核实还在招、对照�
      config.md                       用户设置和进度备忘
      profile/profile.md              经历库
      resumes/                        用户的简历（docx 和 PDF）
-     applications/application_tracker.csv
+     求职投递工作台.xlsx            所有岗位一张表：公司、城市、招聘类型、简历、状态、匹配亮点和差距
      jobs/                           按日期存 JD 原文
      drafts/                         按日期存邮件正文留档
    ```
-   `config.md` 用 `assets/config-template.md` 生成，把收集到的信息填进去。tracker 复制 `assets/application_tracker.csv`，删掉示例行。
+   `config.md` 用 `assets/config-template.md` 生成，把收集到的信息填进去。工作台用 `python3 <skill目录>/scripts/workbench.py init <工作区>/求职投递工作台.xlsx` 生成。这个脚本需要 openpyxl；如果提示缺少，先问用户是否同意安装，同意后运行 `pip3 install --user openpyxl`。
 4. **建经历库**：请用户把简历放进 `resumes/`，读简历，按 `references/profile-template.md` 的结构整理成 `profile/profile.md`。**拿不准的地方列出来问用户，不要自己补全。** 尤其是数字、团队项目里本人负责哪部分、论文作者顺序。
 5. **登记简历版本**：在 `config.md` 里写清楚每份简历用在什么场景（比如技术岗、产品岗、外企英文版、实习版）。
 6. **检查 Mail.app**：运行 `osascript <skill目录>/scripts/list_accounts.applescript`，找到求职邮箱对应的账号名和草稿箱名称，记进 `config.md`。macOS 第一次会弹窗问是否允许控制 Mail，请用户点允许。
@@ -54,20 +54,20 @@ description: 求职助手：找真实在招的岗位、核实还在招、对照�
 
 ### A. 找一轮岗位
 
-1. 先读 tracker 和 `jobs/`，已经处理过的岗位不重复处理。
+1. 先用 `workbench.py list` 看工作台，再看 `jobs/`，已经处理过的岗位不重复处理。
 2. 读 `references/sources.md`，了解去哪找、哪些是常见的坑。
 3. 按 `config.md` 的目标城市、岗位和经验情况搜索。优先公司官网招聘页、技术社区招聘帖、外企官网的应届岗。
 4. 每个岗位：打开链接确认在招，看发布时间，看届别和年限门槛，提取 JD 存到 `jobs/YYYY-MM-DD/`。
-5. 写匹配分析：明显匹配的地方、部分匹配、差距、需要担心的地方。
-6. **分流**：
+5. 写匹配分析：明显匹配的地方、部分匹配、差距、需要担心的地方。完整分析写在 JD 存档末尾；**精简成一两句填进工作台的"匹配亮点"和"差距"两列**，用户打开工作台就能一眼看到每个岗位为什么值得投、缺什么。
+6. **分流**，每个岗位都用 `workbench.py add` 加进工作台（填好公司、城市、招聘类型、投递方式、优先级、用哪份简历、链接、匹配亮点、差距）：
    - 有**核实过**的招聘邮箱（JD 里写的、公司官网公布的、招聘负责人本人公开发的）：进入流程 C 写邮件建草稿
-   - 只能官网投递：写进投递清单（tracker 状态 `SHORTLISTED`，标明官网链接、用哪份简历），由用户自己去投
-   - 不满足硬性条件：tracker 状态 `SKIPPED`，写明原因
+   - 只能官网投递：投递方式填"官网"，状态"待投递"，由用户自己去投；用户投完把状态改成"已申请"即可
+   - 不满足硬性条件：状态"不投"，在"差距"或"备注"里写明原因
 7. 汇报：找到几个、各自去向、卡在哪里。找得少就如实说，不为凑数降低标准。
 
 ### B. 用户给了一个岗位链接或 JD
 
-核实是否在招，做匹配分析，找公开招聘邮箱。找得到就走流程 C，找不到就加进投递清单。
+核实是否在招，做匹配分析，找公开招聘邮箱。找得到就走流程 C，找不到就以"官网"方式加进工作台。
 
 ### C. 写邮件、建草稿
 
@@ -78,7 +78,7 @@ description: 求职助手：找真实在招的岗位、核实还在招、对照�
    osascript <skill目录>/scripts/create_mail_draft.applescript "<姓名> <求职邮箱>" <正文文件> "<主题>" <收件人> <简历绝对路径>
    ```
 4. 核对：`osascript <skill目录>/scripts/check_drafts.applescript "<账号名>" "<草稿箱名>"`。Mail 的脚本接口读不到撰写窗口里的附件，所以一定要从草稿箱读回来核对。
-5. tracker 记为 `DRAFT_CREATED`。
+5. 工作台里这一行：投递方式"邮件"，状态改为"草稿已建"（`workbench.py update`）。
 6. 这一批做完就停下汇报，最后明确说一句："草稿已存进 Mail.app 草稿箱等你审核，没有任何邮件被发送。"
 
 ### D. 发送（仅在用户明确下达发送指令时）
@@ -90,11 +90,11 @@ description: 求职助手：找真实在招的岗位、核实还在招、对照�
 2. 用 `scripts/send_mail.applescript` 发送，它会在发送前再检查一遍收件人和发件人。（Mail 的脚本接口不能直接发送草稿箱里已存的草稿，所以这个脚本会按留档重新生成同样的邮件再发。）
 3. 到"已发送"里确认发出、附件正确。同一封邮件可能显示两条（本地和服务器副本），对比 Message-ID 即可判断是不是同一封。
 4. 告诉用户原来的草稿还在草稿箱，问是否要移到"已删除"，避免以后重复发送。
-5. tracker 改为 `SENT`，记录发送时间。
+5. 工作台状态改为"已申请"，脚本会自动记下投递时间。
 
 ### E. 面试来了
 
-读 JD 和经历库，准备：1 分钟自我介绍、最可能被问的问题、经历里哪些故事最对口、提醒用户面试中必须如实回答的点（比如作者顺序、团队项目里本人负责的部分）、要反问的问题。用户愿意的话，扮演面试官模拟一轮。tracker 改为 `INTERVIEW`。
+读 JD 和经历库，准备：1 分钟自我介绍、最可能被问的问题、经历里哪些故事最对口、提醒用户面试中必须如实回答的点（比如作者顺序、团队项目里本人负责的部分）、要反问的问题。用户愿意的话，扮演面试官模拟一轮。工作台状态改为"一面"或"二面/终面"，面试时间写进"下一步/待办"。
 
 ## 收尾
 
