@@ -91,6 +91,10 @@ git clone https://github.com/Wanqing-Chenn/ai-job-hunting-agent.git ~/.codex/ski
 | 发送 | 发送编号 1、2 |
 | 准备面试 | XX 公司约我明天下午面 XX 岗位，帮我准备 |
 
+## 关于工作台文件
+
+`求职投递工作台.xlsx` 用 Excel、WPS、Numbers 都能打开。投递状态和距截止天数的颜色提醒只在 Excel 和 WPS 里显示；用 Numbers 打开时没有颜色，但所有统计数字照常自动计算。
+
 ## 你的数据放在哪
 
 经历库、简历、投递记录、邮件留档都在你自己电脑的 `~/求职工作区/` 里，不在 skill 文件夹里。更新 skill 不会覆盖你的数据，也不会把它们传到网上。

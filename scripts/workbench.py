@@ -28,7 +28,7 @@ from datetime import date, datetime
 
 try:
     from openpyxl import Workbook, load_workbook
-    from openpyxl.formatting.rule import FormulaRule
+    from openpyxl.formatting.rule import CellIsRule
     from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.worksheet.datavalidation import DataValidation
 except ImportError:
@@ -112,28 +112,30 @@ def init(path):
     # 下拉菜单
     for c, name in enumerate(OPTIONS, start=1):
         n = len(OPTIONS[name])
-        dv = DataValidation(type="list", formula1=f"={OPTION_SHEET}!${col_letter(c)}$2:${col_letter(c)}${n + 1}",
-                            allow_blank=True)
+        # 选项直接写在规则里，不引用「选项」表：Numbers 不支持跨表引用的下拉菜单，会弹导入警告
+        dv = DataValidation(type="list", formula1='"' + ",".join(OPTIONS[name]) + '"', allow_blank=True)
         rec.add_data_validation(dv)
         L = col_letter(COL[name])
         dv.add(f"{L}2:{L}{MAX_ROWS}")
 
-    # 状态颜色：已申请及之后的进行中为蓝，面试为绿，结束为灰
-    s = col_letter(COL["投递状态"])
-    rng = f"A2:{col_letter(len(COLUMNS))}{MAX_ROWS}"
-    for cond, color in [
-        (f'OR(${s}2="一面",${s}2="二面/终面",${s}2="Offer")', "E2EFDA"),
-        (f'OR(${s}2="已拒绝/未通过",${s}2="已撤销",${s}2="不投")', "EDEDED"),
-        (f'${s}2="草稿已建"', "FFF2CC"),
+    # 状态颜色（只给"投递状态"列上色，用简单的"等于"规则：Numbers 读不懂公式型条件格式）
+    S_ = col_letter(COL["投递状态"])
+    for values, color in [
+        (["一面", "二面/终面", "Offer"], "C6EFCE"),
+        (["草稿已建"], "FFF2CC"),
+        (["已申请", "简历筛选", "笔试/测评"], "DDEBF7"),
+        (["已拒绝/未通过", "已撤销", "不投"], "EDEDED"),
     ]:
-        rec.conditional_formatting.add(rng, FormulaRule(formula=[cond], fill=PatternFill("solid", fgColor=color)))
+        for v in values:
+            rec.conditional_formatting.add(f"{S_}2:{S_}{MAX_ROWS}", CellIsRule(
+                operator="equal", formula=[f'"{v}"'], fill=PatternFill("solid", fgColor=color)))
 
     # 距截止(天)：3 天内标红，7 天内标黄
     X = col_letter(COL["距截止(天)"])
-    rec.conditional_formatting.add(f"{X}2:{X}{MAX_ROWS}", FormulaRule(
-        formula=[f"AND(ISNUMBER({X}2),{X}2<=3)"], fill=PatternFill("solid", fgColor="F8CBAD")))
-    rec.conditional_formatting.add(f"{X}2:{X}{MAX_ROWS}", FormulaRule(
-        formula=[f"AND(ISNUMBER({X}2),{X}2<=7)"], fill=PatternFill("solid", fgColor="FFE699")))
+    rec.conditional_formatting.add(f"{X}2:{X}{MAX_ROWS}", CellIsRule(
+        operator="between", formula=["0", "3"], fill=PatternFill("solid", fgColor="F8CBAD")))
+    rec.conditional_formatting.add(f"{X}2:{X}{MAX_ROWS}", CellIsRule(
+        operator="between", formula=["4", "7"], fill=PatternFill("solid", fgColor="FFE699")))
 
     # 首页
     R = f"{RECORD_SHEET}!"
