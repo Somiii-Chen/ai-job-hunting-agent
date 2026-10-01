@@ -38,19 +38,35 @@
 
 需要：一台 Mac，Mail.app 里已添加你的求职邮箱；装好 [Claude Code](https://claude.com/claude-code) 或 [Codex](https://openai.com/codex)。
 
-在"终端"里运行一行命令：
+三种装法，选一种就行：
 
-**Claude Code**
+**1. 让 AI 帮你装（最简单）**
+
+对你的 Claude Code 或 Codex 说：
+
+```
+帮我安装这个 skill：https://github.com/Wanqing-Chenn/ai-job-hunting-agent
+```
+
+**2. 一行命令**
+
+在"终端"里运行：
+
 ```bash
+# Claude Code
 git clone https://github.com/Wanqing-Chenn/ai-job-hunting-agent.git ~/.claude/skills/ai-job-hunting-agent
 ```
 
-**Codex**
 ```bash
+# Codex
 git clone https://github.com/Wanqing-Chenn/ai-job-hunting-agent.git ~/.codex/skills/ai-job-hunting-agent
 ```
 
-以后更新：进到上面的文件夹运行 `git pull`。
+**3. 下载压缩包**
+
+在本页面点绿色的 **Code** 按钮，选 **Download ZIP**。解压后把文件夹改名为 `ai-job-hunting-agent`，放进 `~/.claude/skills/`（Claude Code）或 `~/.codex/skills/`（Codex）。这两个文件夹是隐藏的，在访达里按 Shift+Cmd+G，输入路径就能打开。
+
+更新：用命令安装的，进到上面的文件夹运行 `git pull`；用压缩包安装的，重新下载替换。
 
 ## 第一次使用
 
