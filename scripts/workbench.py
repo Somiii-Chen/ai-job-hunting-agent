@@ -2,7 +2,7 @@
 """求职投递工作台（Excel）。
 
 一个 .xlsx 文件，三个工作表：
-  工作台    首页统计（总数、按状态、按投递方式），打开文件时自动计算
+  工作台    首页：总数、进行中、7天内截止、按状态、按投递方式、即将截止名单、按公司统计
   投递记录  每个岗位一行：公司、城市、招聘类型、用哪份简历、投递状态（下拉）、匹配亮点、差距……
   选项      下拉菜单的取值
 
@@ -13,6 +13,7 @@
   python3 workbench.py add    <工作台.xlsx> '<JSON>'        # 字段名用下方 COLUMNS 里的中文列名
   python3 workbench.py update <工作台.xlsx> <公司> <岗位> '<JSON>'
   python3 workbench.py list   <工作台.xlsx> [投递状态]
+  python3 workbench.py refresh <工作台.xlsx>            # 用户手动改过表后，刷新首页名单
 
 例子:
   python3 workbench.py add 求职投递工作台.xlsx '{"公司":"某公司","岗位":"AI应用工程师","城市":"上海",
@@ -21,6 +22,7 @@
   python3 workbench.py update 求职投递工作台.xlsx 某公司 AI应用工程师 '{"投递状态":"已申请","投递时间":"2026-10-08"}'
 """
 import json
+import re
 import sys
 from datetime import date, datetime
 
@@ -56,6 +58,7 @@ COLUMNS = [
     ("发现日期", 11),
     ("投递时间", 16),
     ("截止时间", 11),
+    ("距截止(天)", 10),
     ("下一步/待办", 30),
     ("备注", 30),
 ]
@@ -125,34 +128,105 @@ def init(path):
     ]:
         rec.conditional_formatting.add(rng, FormulaRule(formula=[cond], fill=PatternFill("solid", fgColor=color)))
 
-    # 首页统计
+    # 距截止(天)：3 天内标红，7 天内标黄
+    X = col_letter(COL["距截止(天)"])
+    rec.conditional_formatting.add(f"{X}2:{X}{MAX_ROWS}", FormulaRule(
+        formula=[f"AND(ISNUMBER({X}2),{X}2<=3)"], fill=PatternFill("solid", fgColor="F8CBAD")))
+    rec.conditional_formatting.add(f"{X}2:{X}{MAX_ROWS}", FormulaRule(
+        formula=[f"AND(ISNUMBER({X}2),{X}2<=7)"], fill=PatternFill("solid", fgColor="FFE699")))
+
+    # 首页
     R = f"{RECORD_SHEET}!"
-    D = col_letter(COL["岗位"])
-    S = col_letter(COL["投递状态"])
-    M = col_letter(COL["投递方式"])
+    D, S, M = col_letter(COL["岗位"]), col_letter(COL["投递状态"]), col_letter(COL["投递方式"])
     home["B2"] = "求职投递工作台"
     home["B2"].font = Font(bold=True, size=16)
-    home["B3"] = "每投一个岗位，在「投递记录」加一行；投递状态用下拉选择；本页统计自动计算。"
+    home["B3"] = ("每个岗位在「投递记录」里一行，投递状态用下拉选择。本页数字自动计算；"
+                  "「即将截止」和「按公司」的名单在 AI 更新工作台时刷新。")
+    bold = Font(bold=True)
     home["B5"], home["C5"] = "总岗位数", f"=COUNTA({R}{D}2:{D}{MAX_ROWS})"
     closed = "-".join(f'COUNTIF({R}{S}2:{S}{MAX_ROWS},"{x}")' for x in CLOSED)
     home["B6"], home["C6"] = "进行中", f"=C5-{closed}"
-    home["B8"] = "按状态"
-    home["B8"].font = Font(bold=True)
+    home["B7"], home["C7"] = "7天内截止", f'=COUNTIFS({R}{X}2:{X}{MAX_ROWS},">=0",{R}{X}2:{X}{MAX_ROWS},"<=7")'
+    for r in (5, 6, 7):
+        home.cell(r, 2).font = bold
+    home["B9"] = "按状态"
+    home["B9"].font = bold
     for i, st in enumerate(STATUSES):
-        home.cell(9 + i, 2, st)
-        home.cell(9 + i, 3, f'=COUNTIF({R}{S}2:{S}{MAX_ROWS},"{st}")')
-    row = 9 + len(STATUSES) + 1
-    home.cell(row, 2, "按投递方式").font = Font(bold=True)
+        home.cell(10 + i, 2, st)
+        home.cell(10 + i, 3, f'=COUNTIF({R}{S}2:{S}{MAX_ROWS},"{st}")')
+    row = 10 + len(STATUSES) + 1
+    home.cell(row, 2, "按投递方式").font = bold
     for i, m in enumerate(OPTIONS["投递方式"]):
         home.cell(row + 1 + i, 2, m)
         home.cell(row + 1 + i, 3, f'=COUNTIF({R}{M}2:{M}{MAX_ROWS},"{m}")')
-    home.column_dimensions["B"].width = 16
-    home.column_dimensions["C"].width = 10
-    for r in (5, 6):
-        home.cell(r, 2).font = Font(bold=True)
 
+    home["E5"] = "即将截止（未结束的投递）"
+    home["E5"].font = bold
+    for c, h in zip("EFG", ("岗位", "截止时间", "剩余天数")):
+        home[f"{c}{DEADLINE_HEAD}"] = h
+        home[f"{c}{DEADLINE_HEAD}"].font = bold
+    home[f"E{COMPANY_HEAD - 1}"] = "按公司"
+    home[f"E{COMPANY_HEAD - 1}"].font = bold
+    for c, h in zip("EFG", ("公司", "岗位数", "进行中")):
+        home[f"{c}{COMPANY_HEAD}"] = h
+        home[f"{c}{COMPANY_HEAD}"].font = bold
+    for c, w in zip("BCDEFG", (16, 10, 4, 40, 12, 10)):
+        home.column_dimensions[c].width = w
+
+    refresh(wb)
     wb.save(path)
     print(f"已创建工作台: {path}")
+
+
+def _days(cell):
+    """距今天数。用 DATEDIF 而不是日期相减：Numbers 里日期相减得到的是"时长"而不是天数。"""
+    return f'IF({cell}>=TODAY(),DATEDIF(TODAY(),{cell},"D"),-DATEDIF({cell},TODAY(),"D"))'
+
+
+DEADLINE_HEAD, DEADLINE_ROWS = 6, 8      # 首页 E6 表头，E7:G14 列表
+COMPANY_HEAD, COMPANY_ROWS = 18, 20      # 首页 E18 表头，E19:G38 列表
+
+
+def refresh(wb):
+    """重算首页的「即将截止」和「按公司」名单（天数和计数是公式，打开文件时自动更新）。"""
+    rec, home = wb[RECORD_SHEET], wb[HOME_SHEET]
+    R = f"{RECORD_SHEET}!"
+    B, S = col_letter(COL["公司"]), col_letter(COL["投递状态"])
+    for r in range(DEADLINE_HEAD + 1, DEADLINE_HEAD + 1 + DEADLINE_ROWS):
+        for c in "EFG":
+            home[f"{c}{r}"] = None
+    for r in range(COMPANY_HEAD + 1, COMPANY_HEAD + 1 + COMPANY_ROWS):
+        for c in "EFG":
+            home[f"{c}{r}"] = None
+
+    today = date.today()
+    upcoming = []
+    companies = []
+    for r in _rows(rec):
+        g = lambda k: rec.cell(r, COL[k]).value
+        if g("公司") and g("公司") not in companies:
+            companies.append(g("公司"))
+        dl = g("截止时间")
+        if isinstance(dl, datetime):
+            dl = dl.date()
+        if isinstance(dl, date) and g("投递状态") not in CLOSED and dl >= today:
+            upcoming.append((dl, f"{g('公司')} · {g('岗位')}"))
+    for i, (dl, name) in enumerate(sorted(upcoming)[:DEADLINE_ROWS]):
+        r = DEADLINE_HEAD + 1 + i
+        home[f"E{r}"], home[f"F{r}"] = name, dl
+        home[f"F{r}"].number_format = "yyyy-mm-dd"
+        home[f"G{r}"] = f"={_days(f'F{r}')}"
+    if not upcoming:
+        home[f"E{DEADLINE_HEAD + 1}"] = "（暂无填写截止时间的投递）"
+
+    not_closed = "".join(f',{R}{S}2:{S}{MAX_ROWS},"<>{x}"' for x in CLOSED)
+    for i, name in enumerate(companies[:COMPANY_ROWS]):
+        r = COMPANY_HEAD + 1 + i
+        home[f"E{r}"] = name
+        home[f"F{r}"] = f"=COUNTIF({R}{B}2:{B}{MAX_ROWS},E{r})"
+        home[f"G{r}"] = f"=COUNTIFS({R}{B}2:{B}{MAX_ROWS},E{r}{not_closed})"
+    if len(companies) > COMPANY_ROWS:
+        home[f"E{COMPANY_HEAD + COMPANY_ROWS}"] = f"……还有 {len(companies) - COMPANY_ROWS} 家，见投递记录筛选"
 
 
 def _rows(ws):
@@ -174,7 +248,15 @@ def _write(ws, r, data):
             continue
         if k in OPTIONS and v not in (None, "") and v not in OPTIONS[k]:
             sys.exit(f"「{k}」只能填: {OPTIONS[k]}，收到: {v}")
+        if k in ("发现日期", "截止时间") and isinstance(v, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
+            v = datetime.strptime(v, "%Y-%m-%d").date()
+        if k == "投递时间" and isinstance(v, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?", v):
+            v = datetime.strptime(v, "%Y-%m-%d %H:%M") if " " in v else datetime.strptime(v, "%Y-%m-%d").date()
         cell = ws.cell(r, COL[k], v)
+        if k in ("发现日期", "截止时间"):
+            cell.number_format = "yyyy-mm-dd"
+        if k == "投递时间":
+            cell.number_format = "yyyy-mm-dd hh:mm"
         if k == "岗位链接" and v:
             cell.hyperlink = v
             cell.font = Font(color="0563C1", underline="single")
@@ -196,6 +278,10 @@ def add(path, data):
     data.setdefault("投递状态", "待投递")
     ws.cell(r, COL["序号"], r - 1)
     _write(ws, r, data)
+    I, S = col_letter(COL["截止时间"]), col_letter(COL["投递状态"])
+    closed = ",".join(f'{S}{r}="{x}"' for x in CLOSED)
+    ws.cell(r, COL["距截止(天)"], f'=IF(OR({I}{r}="",{closed}),"",{_days(f"{I}{r}")})')
+    refresh(wb)
     wb.save(path)
     print(f"已添加第 {r} 行: {data['公司']} / {data['岗位']} / {data['投递状态']}")
 
@@ -211,6 +297,7 @@ def update(path, company, position, data):
     if data.get("投递状态") == "已申请" and "投递时间" not in data:
         data["投递时间"] = datetime.now().strftime("%Y-%m-%d %H:%M")
     _write(ws, hits[0], data)
+    refresh(wb)
     wb.save(path)
     print(f"已更新第 {hits[0]} 行: {data}")
 
@@ -239,6 +326,11 @@ def main(argv):
         add(path, json.loads(argv[3]))
     elif cmd == "update" and len(argv) == 6:
         update(path, argv[3], argv[4], json.loads(argv[5]))
+    elif cmd == "refresh":
+        wb = load_workbook(path)
+        refresh(wb)
+        wb.save(path)
+        print("首页已刷新")
     elif cmd == "list":
         list_rows(path, argv[3] if len(argv) > 3 else None)
     else:
