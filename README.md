@@ -58,7 +58,7 @@
 对你的 Claude Code 或 Codex 说：
 
 ```
-帮我安装这个 skill：https://github.com/Wanqing-Chenn/ai-job-hunting-agent
+帮我安装这个 skill：https://github.com/Somiii-Chen/ai-job-hunting-agent
 ```
 
 它会请求往你的 skills 文件夹里写文件，点"允许"即可。
@@ -69,12 +69,12 @@
 
 ```bash
 # Claude Code
-git clone https://github.com/Wanqing-Chenn/ai-job-hunting-agent.git ~/.claude/skills/ai-job-hunting-agent
+git clone https://github.com/Somiii-Chen/ai-job-hunting-agent.git ~/.claude/skills/ai-job-hunting-agent
 ```
 
 ```bash
 # Codex
-git clone https://github.com/Wanqing-Chenn/ai-job-hunting-agent.git ~/.codex/skills/ai-job-hunting-agent
+git clone https://github.com/Somiii-Chen/ai-job-hunting-agent.git ~/.codex/skills/ai-job-hunting-agent
 ```
 
 **3. 下载压缩包**
