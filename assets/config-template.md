@@ -12,7 +12,7 @@
 
 ## Mail.app
 
-- 建草稿方式：Mail（macOS Mail.app 直接建草稿，首选）/ eml（生成 .eml 文件，用户双击打开后自己发送）
+- 建草稿方式：Mail（macOS Mail.app 直接建草稿，首选）/ 连接器（AI 工具已连接的 Gmail、Outlook 等邮箱，需能带附件）/ eml（生成 .eml 文件，用户双击打开后自己发送）
 - 账号名：（运行 list_accounts.applescript 查到的"账号名"）
 - 草稿箱名称：（例如 草稿箱 / Drafts）
 - 发件人写法：姓名 <求职邮箱>
