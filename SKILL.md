@@ -1,6 +1,6 @@
 ---
 name: ai-job-hunting-agent
-description: 求职助手：找真实在招的岗位、核实还在招、对照用户真实经历做匹配分析、为有公开招聘邮箱的岗位写定制求职邮件并存进 macOS Mail.app 草稿（不自动发送）、把所有岗位整理进 Excel 求职投递工作台（公司、城市、招聘类型、用哪份简历、投递状态、匹配亮点和差距）、准备面试。只要用户提到找工作、求职、投简历、找岗位、写求职信或求职邮件、给 HR 发邮件、整理投递记录、准备面试，或者说"开始今天的求职任务"、"帮我配置求职助手"，都应使用这个 skill，即使用户没有说出 skill 的名字。Job search assistant for finding verified openings, drafting tailored application emails as Mail.app drafts with human review before sending, tracking applications, and interview prep.
+description: 求职助手：找真实在招的岗位、核实还在招、对照用户真实经历做匹配分析、为有公开招聘邮箱的岗位写定制求职邮件并存进 macOS Mail.app 草稿（不自动发送；控制不了 Mail 时改为生成可双击打开的 .eml 邮件文件）、把所有岗位整理进 Excel 求职投递工作台（公司、城市、招聘类型、用哪份简历、投递状态、匹配亮点和差距）、准备面试。只要用户提到找工作、求职、投简历、找岗位、写求职信或求职邮件、给 HR 发邮件、整理投递记录、准备面试，或者说"开始今天的求职任务"、"帮我配置求职助手"，都应使用这个 skill，即使用户没有说出 skill 的名字。Job search assistant for finding verified openings, drafting tailored application emails as Mail.app drafts with human review before sending, tracking applications, and interview prep.
 ---
 
 # AI 求职助手
@@ -44,8 +44,12 @@ description: 求职助手：找真实在招的岗位、核实还在招、对照�
    `config.md` 用 `assets/config-template.md` 生成，把收集到的信息填进去。工作台用 `python3 <skill目录>/scripts/workbench.py init <工作区>/求职投递工作台.xlsx` 生成。这个脚本需要 openpyxl；如果提示缺少，先问用户是否同意安装，同意后运行 `pip3 install --user openpyxl`。
 4. **建经历库**：请用户把简历放进 `resumes/`，读简历，按 `references/profile-template.md` 的结构整理成 `profile/profile.md`。**拿不准的地方列出来问用户，不要自己补全。** 尤其是数字、团队项目里本人负责哪部分、论文作者顺序。
 5. **登记简历版本**：在 `config.md` 里写清楚每份简历用在什么场景（比如技术岗、产品岗、外企英文版、实习版）。
-6. **检查 Mail.app**：运行 `osascript <skill目录>/scripts/list_accounts.applescript`，找到求职邮箱对应的账号名和草稿箱名称，记进 `config.md`。macOS 第一次会弹窗问是否允许控制 Mail，请用户点允许。
-7. **试建一封草稿**：收件人填用户自己的邮箱，用 `create_mail_draft.applescript` 建一封测试草稿，再用 `check_drafts.applescript` 读回来，确认发件人和附件都对。然后告诉用户测试草稿可以删掉。
+6. **选建草稿的方式**（记进 `config.md` 的"建草稿方式"）：
+   - **Mail 模式（首选）**：用户用 Mac，Mail.app 里已加求职邮箱，而且你能执行命令。运行 `osascript <skill目录>/scripts/list_accounts.applescript`，找到求职邮箱对应的账号名和草稿箱名称，记进 `config.md`。macOS 第一次会弹窗问是否允许控制 Mail，请用户点允许。
+   - **eml 模式（备用）**：不是 Mac、Mail.app 里没有求职邮箱、`osascript` 被拦截或运行失败时用。邮件会生成为 `.eml` 文件，用户双击打开后自己审核发送。不要因为 Mail 连不上就退回到"把邮件贴在对话里让用户复制"。
+7. **试一次**：
+   - Mail 模式：收件人填用户自己的邮箱，用 `create_mail_draft.applescript` 建一封测试草稿，再用 `check_drafts.applescript` 读回来，确认发件人和附件都对，然后告诉用户测试草稿可以删掉。
+   - eml 模式：用 `make_eml.py` 生成一封发给用户自己的测试邮件，请用户双击打开看看（打开方法见流程 C 的 eml 部分）。
 8. 告诉用户配置完成，以及以后怎么用（见 README 里的常用说法）。
 
 ## 日常任务
@@ -78,12 +82,18 @@ description: 求职助手：找真实在招的岗位、核实还在招、对照�
    osascript <skill目录>/scripts/create_mail_draft.applescript "<姓名> <求职邮箱>" <正文文件> "<主题>" <收件人> <简历绝对路径>
    ```
 4. 核对：`osascript <skill目录>/scripts/check_drafts.applescript "<账号名>" "<草稿箱名>"`。Mail 的脚本接口读不到撰写窗口里的附件，所以一定要从草稿箱读回来核对。
+
+   **eml 模式**下，第 3、4 步换成：
+   ```
+   python3 <skill目录>/scripts/make_eml.py --from "<姓名> <求职邮箱>" --to <收件人> --subject "<主题>" --body <正文文件> --attach <简历路径> --out <工作区>/drafts/YYYY-MM-DD/编号_公司_岗位.eml
+   ```
+   脚本会打印收件人、主题、附件，核对无误后告诉用户文件位置和打开方法：Apple Mail 双击打开后选菜单"邮件 → 再次发送"（Shift+Cmd+D）变成可编辑的新邮件；Outlook 双击直接是草稿；Thunderbird 打开后选"编辑为新消息"。网页邮箱（QQ、163 网页版等）不能导入 .eml，就请用户新建邮件，复制同名 .txt 里的正文、手动添加附件。
 5. 工作台里这一行：投递方式"邮件"，状态改为"草稿已建"（`workbench.py update`）。
-6. 这一批做完就停下汇报，最后明确说一句："草稿已存进 Mail.app 草稿箱等你审核，没有任何邮件被发送。"
+6. 这一批做完就停下汇报，最后明确说一句："草稿已存进 Mail.app 草稿箱等你审核，没有任何邮件被发送。"（eml 模式说："邮件已生成在 drafts 文件夹，打开后由你审核发送，没有任何邮件被发送。"）
 
 ### D. 发送（仅在用户明确下达发送指令时）
 
-最简单也最稳妥的做法：请用户在 Mail.app 草稿箱里打开那封草稿，自己点发送。
+最简单也最稳妥的做法：请用户在 Mail.app 草稿箱里打开那封草稿，自己点发送。eml 模式下只能由用户自己发送；用户发完告诉你，你把工作台状态改成"已申请"。
 
 如果用户明确要求由你来发送（例如"发送编号 1、2"）：
 1. 发送前逐项核对：收件人、主题、发件人、附件（文件名和大小与简历文件一致）、正文与留档一致。任何一项不对就停下报告。

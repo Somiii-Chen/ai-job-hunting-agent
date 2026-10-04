@@ -41,7 +41,7 @@
 ## 先说局限
 
 - **能直接发邮件的岗位很少。** 大部分公司用官网招聘系统收简历，所以多数岗位最后会记进工作台，要你自己去官网投。它帮你省的是找岗位、核实、筛选、写邮件这些最耗时间的活。
-- 建草稿和发送只支持 **macOS 的 Mail.app**。
+- 直接建草稿和代发邮件只支持 **macOS 的 Mail.app**。不是 Mac、或者 AI 控制不了 Mail 时，它会把邮件生成为 `.eml` 文件（收件人、正文、简历附件都写好），你双击打开再发送。
 - AI 也会看错、漏看，每封草稿发之前请自己读一遍。
 
 ## 安装
@@ -60,6 +60,8 @@
 ```
 帮我安装这个 skill：https://github.com/Wanqing-Chenn/ai-job-hunting-agent
 ```
+
+它会请求往你的 skills 文件夹里写文件，点"允许"即可。
 
 **2. 一行命令**
 
@@ -128,12 +130,19 @@ references/profile-template.md  经历库模板
 assets/config-template.md    工作区配置模板
 assets/screenshots/          README 用的演示截图
 scripts/workbench.py         生成和更新求职投递工作台（Excel）
+scripts/make_eml.py          控制不了 Mail 时，生成可双击打开的 .eml 邮件文件
 scripts/                     Mail.app 脚本：查看账号、建草稿、核对草稿箱、发送
 ```
 
 ## 常见问题
 
-**Windows 能用吗？** 找岗位、写邮件、工作台都能用，但建草稿和发送依赖 Mac 的 Mail.app。Windows 上可以让 AI 把邮件写好存在 `drafts/` 里，你自己复制到邮箱发送。
+**我用的是 Gemini、ChatGPT 或 Claude 的网页版/App，能用吗？** 不太行。网页版和手机 App 跑在云端，碰不到你电脑上的文件和 Mail，只能把邮件贴在对话里让你复制。这个 skill 需要能在你电脑上读写文件、执行命令的 AI 工具，比如 Claude Code、Codex。
+
+**用 Gemini CLI 或其他命令行 AI 工具可以吗？** 可以试试：把这个仓库下载到任意位置，对它说"读一下 <路径>/SKILL.md，按里面的流程帮我配置求职助手"。只要它能执行命令，就能用 Mail 模式；执行不了 Mail 脚本，也会自动改用 .eml 文件。
+
+**Windows 能用吗？** 能。找岗位、工作台都一样；邮件会生成为 `.eml` 文件，Outlook 双击打开就是草稿，检查后点发送即可。
+
+**AI 说连不上 Mail 怎么办？** 先确认 Mail.app 里加了求职邮箱，并且在"系统设置 → 隐私与安全性 → 自动化"里允许了你的 AI 工具控制 Mail。还不行的话，它会改用 .eml 文件，不影响使用。
 
 **它会帮我在招聘网站或官网上自动投递吗？** 不会。它不碰招聘平台，也不替你提交官网申请表；官网岗位记进工作台，你自己去投。
 
