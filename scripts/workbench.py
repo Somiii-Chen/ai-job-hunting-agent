@@ -6,7 +6,8 @@
   投递记录  每个岗位一行：公司、城市、招聘类型、用哪份简历、投递状态（下拉）、匹配亮点、差距……
   选项      下拉菜单的取值
 
-用 Excel、Numbers、WPS 都能打开。依赖 openpyxl（没有的话：pip3 install --user openpyxl）。
+用 Excel、Numbers、WPS 都能打开。要手动改状态请用 Excel 或 WPS（Numbers 打开会转成它自己的格式，改动不会写回这个文件）。
+依赖 openpyxl（没有的话：pip3 install --user openpyxl）。
 
 用法:
   python3 workbench.py init   <工作台.xlsx>
@@ -266,7 +267,16 @@ def _write(ws, r, data):
             cell.alignment = Alignment(wrap_text=True, vertical="top")
 
 
+def _check_not_open(path):
+    """Excel 打开文件时会在同目录生成 ~$文件名 的锁文件。这时写入会和 Excel 的保存互相覆盖，所以先停下。"""
+    import os
+    d, n = os.path.split(os.path.abspath(path))
+    if os.path.exists(os.path.join(d, "~$" + n)):
+        sys.exit("工作台正在 Excel 里打开。请先在 Excel 里保存并关闭它，再让我更新，否则你的修改可能会被覆盖。")
+
+
 def add(path, data):
+    _check_not_open(path)
     wb = load_workbook(path)
     ws = wb[RECORD_SHEET]
     for r in _rows(ws):
@@ -289,6 +299,7 @@ def add(path, data):
 
 
 def update(path, company, position, data):
+    _check_not_open(path)
     wb = load_workbook(path)
     ws = wb[RECORD_SHEET]
     hits = [r for r in _rows(ws)
@@ -329,6 +340,7 @@ def main(argv):
     elif cmd == "update" and len(argv) == 6:
         update(path, argv[3], argv[4], json.loads(argv[5]))
     elif cmd == "refresh":
+        _check_not_open(path)
         wb = load_workbook(path)
         refresh(wb)
         wb.save(path)

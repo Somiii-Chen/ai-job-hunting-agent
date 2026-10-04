@@ -22,6 +22,16 @@
      发送前再核对收件人和附件，发送，记录
 ```
 
+## 你会得到一个求职投递工作台
+
+所有岗位都记在一个 Excel 里：首页看进度和快截止的岗位，投递记录里每个岗位写清楚公司、城市、招聘类型、投哪份简历、投递状态，以及**你哪段经历对得上、还差什么**。
+
+![工作台首页](assets/screenshots/workbench-home.png)
+
+![投递记录：匹配亮点和差距](assets/screenshots/workbench-records.png)
+
+（截图是演示数据）
+
 ## 三条底线
 
 1. **不自动发送**：所有邮件停在草稿箱，你说"发送编号 1、2"这种明确的话才发。
@@ -36,7 +46,10 @@
 
 ## 安装
 
-需要：一台 Mac，Mail.app 里已添加你的求职邮箱；装好 [Claude Code](https://claude.com/claude-code) 或 [Codex](https://openai.com/codex)。
+需要：
+- 一台 Mac，Mail.app 里已添加你的求职邮箱（QQ 邮箱、163、Gmail、Outlook 等都可以加进 Mail.app）
+- 能用 [Claude Code](https://claude.com/claude-code) 或 [Codex](https://openai.com/codex) 的账号
+- Python 3（Mac 第一次在终端里运行 `python3` 时，如果没装，系统会提示安装开发者工具，点安装即可）。工作台还要用到 openpyxl，缺的话 AI 会先问你，再帮你装
 
 三种装法，选一种就行：
 
@@ -78,7 +91,7 @@ git clone https://github.com/Wanqing-Chenn/ai-job-hunting-agent.git ~/.codex/ski
 
 它会一步步问你：求职邮箱、目标城市和岗位、经验情况，然后在 `~/求职工作区/` 帮你建好文件夹，读你的简历整理出经历库（拿不准的地方会问你），最后给你自己的邮箱建一封测试草稿，确认一切正常。
 
-第一次操作 Mail.app 时，macOS 会弹窗问是否允许，点"允许"。
+第一次操作 Mail.app 时，macOS 会弹窗问是否允许，点"允许"。用 Codex 的话，它第一次运行脚本时也可能请你批准，点允许即可。
 
 ## 常用说法
 
@@ -93,11 +106,17 @@ git clone https://github.com/Wanqing-Chenn/ai-job-hunting-agent.git ~/.codex/ski
 
 ## 关于工作台文件
 
-`求职投递工作台.xlsx` 用 Excel、WPS、Numbers 都能打开。投递状态和距截止天数的颜色提醒只在 Excel 和 WPS 里显示；用 Numbers 打开时没有颜色，但所有统计数字照常自动计算。
+`求职投递工作台.xlsx` 用 Excel、WPS、Numbers 都能打开。
+
+- **想自己改状态，请用 Excel 或 WPS。** Numbers 打开时会转成它自己的格式，在 Numbers 里的改动不会写回这个文件，AI 也就看不到。用 Numbers 的话，只看不改，状态变了直接告诉 AI（比如"微软那个我投了"）。
+- **让 AI 更新工作台之前，先在 Excel 里保存并关闭它**，不然两边会互相覆盖。忘了也没关系，AI 发现文件开着会停下来提醒你。
+- 投递状态和距截止天数的颜色提醒只在 Excel 和 WPS 里显示；Numbers 里没有颜色，但统计数字照常自动计算。
 
 ## 你的数据放在哪
 
-经历库、简历、投递记录、邮件留档都在你自己电脑的 `~/求职工作区/` 里，不在 skill 文件夹里。更新 skill 不会覆盖你的数据，也不会把它们传到网上。
+经历库、简历、投递记录、邮件留档都存在你自己电脑的 `~/求职工作区/` 里，不在 skill 文件夹里，更新 skill 不会覆盖它们，也不会把它们上传到 GitHub。
+
+要知道的是：AI 读你的简历、经历库、写邮件时，这些内容会发送给你所用的 AI 服务商（Anthropic 或 OpenAI）处理，这和你平时在对话里贴简历是一样的。不想让 AI 看到的信息（证件号、密码等）不要放进工作区。
 
 ## 文件说明
 
@@ -107,9 +126,24 @@ references/rules.md          工作规则细则
 references/sources.md        去哪找岗位、常见的坑
 references/profile-template.md  经历库模板
 assets/config-template.md    工作区配置模板
+assets/screenshots/          README 用的演示截图
 scripts/workbench.py         生成和更新求职投递工作台（Excel）
 scripts/                     Mail.app 脚本：查看账号、建草稿、核对草稿箱、发送
 ```
+
+## 常见问题
+
+**Windows 能用吗？** 找岗位、写邮件、工作台都能用，但建草稿和发送依赖 Mac 的 Mail.app。Windows 上可以让 AI 把邮件写好存在 `drafts/` 里，你自己复制到邮箱发送。
+
+**它会帮我在招聘网站或官网上自动投递吗？** 不会。它不碰招聘平台，也不替你提交官网申请表；官网岗位记进工作台，你自己去投。
+
+**为什么它说找到的岗位不多？** 有公开 HR 邮箱、又不卡年限的岗位本来就少，它不会为了凑数放进已关闭或不合适的岗位。
+
+**怎么卸载？** 删掉 `~/.claude/skills/ai-job-hunting-agent`（或 `~/.codex/skills/ai-job-hunting-agent`）这个文件夹即可。你的 `~/求职工作区/` 不会受影响，不需要的话自己删除。
+
+## 免责声明
+
+岗位信息来自公开网页，可能有过时或不准确的地方；招聘邮箱以公司官方公布为准。投递前请自己再确认一遍岗位要求和邮件内容。这个工具不保证面试或录用结果。
 
 ## 请善意使用
 

@@ -15,7 +15,7 @@
 --   4 收件人邮箱
 --   5 附件的绝对路径（推荐 PDF）
 --
--- 运行后撰写窗口会保持打开，草稿已存进该账号的草稿箱。
+-- 运行后草稿存进该账号的草稿箱，撰写窗口会自动关掉。
 -- 用 scripts/check_drafts.applescript 核对发件人、收件人和附件。
 
 on run argv
@@ -37,6 +37,13 @@ on run argv
 		end tell
 		delay 3
 		save msg
+		delay 2
+		-- 存好后关掉撰写窗口，避免一次建很多草稿时窗口越堆越多（草稿已在草稿箱里，关窗口不影响）
+		repeat with w in (every window)
+			try
+				if name of w is theSubject then close w saving no
+			end try
+		end repeat
 	end tell
 	return "草稿已保存（未发送）: " & theSubject
 end run
